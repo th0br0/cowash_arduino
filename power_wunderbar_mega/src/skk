@@ -1,0 +1,54 @@
+#include <EmonLib.h>
+#include <WunderbarBridge.h>
+
+Bridge bridge;
+static bridge_payload_t rxPayload;
+
+
+void setup()
+{  
+  Serial.begin(9600);
+  
+  bridge = Bridge(115200);
+  bridge.setBridgePort(1);
+
+
+  emon1.voltage(13, 234.26, 1.7);  // Voltage: input pin, calibration, phase_shift
+  emon1.current(15, 29);       // Current: input pin, calibration.
+}
+
+void serialEvent() {
+    if(Serial1.available()) {
+        bridge.processSerial();
+    }
+}
+
+void loop()
+{
+    if (bridge.newData){        
+        Serial.println("Data Received!\n");  
+        rxPayload = bridge.getData();   
+        Serial.print("Payload len: ");
+        Serial.println(rxPayload.length);
+        Serial.print("Payload data: ");
+        int i = 0;
+        for(i = 0; i < (rxPayload.length -1); i++)
+            Serial.print(rxPayload.payload[i]);
+        Serial.println(rxPayload.payload[rxPayload.length - 1]);
+        Serial.println("Data Received!\n");  
+
+    }
+    emon1.calcVI(20,2000);         // Calculate all. No.of half wavelengths (crossings), time-out
+    emon1.serialprint();
+    
+    uint8_t bridgeOut[] = {emon1.realPower, emon1.apparentPower, emon1.powerFactor, emon1.Vrms, emon1.Irms};
+    bridge.sendData(bridgeOut, sizeof(bridgeOut));
+    Serial.println("");
+
+    delay(1000);
+//    double Irms = emon1.calcIrms(1480);
+ //   Serial.print("VVC, ");
+  //   Serial.print(Irms);
+   //  Serial.print(",");
+    // Serial.println(Irms*234.0);
+}
